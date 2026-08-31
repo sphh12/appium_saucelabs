@@ -1,0 +1,94 @@
+# iOS 회귀 CI — macOS 러너의 시뮬레이터에서 iOS 테스트를 실행하고 Allure 리포트를 아티팩트로 올린다.
+#
+# Android 워크플로와 파일을 분리한 이유: iOS 는 WDA 빌드 등 실패 지점이 많아, 같은 워크플로에
+# job 으로 붙이면 iOS 문제로 Android 회귀까지 붉어진다. push/PR 트리거도 일부러 넣지 않는다.
+name: "[iOS] Appium - My Demo App"
+# 실행 이력(런) 제목. 스케줄·수동 실행은 커밋 맥락이 없어 GitHub이 워크플로 이름으로 폴백하는데,
+# 그러면 목록에서 모든 런이 같은 제목으로 보인다. 트리거별로 제목을 지정해 구분한다.
+# push/PR 은 빈 문자열로 둬 GitHub 기본값(커밋 메시지·PR 제목)을 그대로 쓴다.
+run-name: "${{ github.event_name == 'schedule' && '[Daily] Regression Test' || github.event_name == 'workflow_dispatch' && '[Manual] Regression Test' || '' }}"
+
+on:
+  # Actions 탭 수동 실행 (기본 브랜치의 파일만 버튼이 노출됨)
+  workflow_dispatch:
+  # 야간 회귀 — cron 은 UTC 기준이며 기본 브랜치(main)의 파일만 동작한다.
+  #   '50 18 * * *' = UTC 18:50 = KST 03:50 (다음 날 새벽)
+  #   Android(03:20)와 30분 간격을 둬 러너 사용이 겹치지 않게 한다.
+  schedule:
+    - cron: "50 18 * * *"
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: true
+
+env:
+  # 대상 앱은 공개 테스트용 — apps/ 가 gitignore 라 CI 에서 릴리스에서 받는다.
+  # capabilities.py 가 .zip 을 그대로 인식하므로 압축 해제가 필요 없다.
+  IOS_APP_URL: "https://github.com/saucelabs/my-demo-app-ios/releases/download/2.2.2/SauceLabs-Demo-App.Simulator.zip"
+  IOS_APP_PATH: "apps/ios/SauceLabs-Demo-App.Simulator.zip"
+  EXECUTOR_NAME: "github-actions"
+  # 러너에는 WDA 캐시가 없어 첫 세션이 빌드부터 한다 — 기본값(60초)이면 첫 테스트만 실패한다
+  IOS_WDA_LAUNCH_TIMEOUT: "360000"
+
+jobs:
+  ios:
+    name: "iOS 시뮬레이터 회귀"
+    runs-on: macos-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: "requirements.txt"
+
+      - name: "Python 의존성 설치"
+        run: pip install -r requirements.txt
+
+      # package-lock.json 은 .gitignore 대상이라 러너에 없다 → npm 캐시와 npm ci 는 쓸 수 없다
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: "Appium 및 XCUITest 드라이버 확인"
+        run: |
+          npm install --no-audit --no-fund
+          # 드라이버 목록은 stdout 이 아니라 stderr 로 나오므로 2>&1 로 합쳐서 확인해야 한다
+          DRIVERS="$(npx appium driver list --installed 2>&1)"
+          echo "$DRIVERS"
+          echo "$DRIVERS" | grep -qi xcuitest || npx appium driver install xcuitest
+          npx appium --version
+          xcodebuild -version
+
+      - name: "대상 앱 다운로드"
+        run: |
+          mkdir -p apps/ios
+          curl -fsSL -o "$IOS_APP_PATH" "$IOS_APP_URL"
+          # ZIP 매직(PK) 검증 — 차단 페이지 등이 앱으로 저장되는 것을 막는다
+          if [ "$(head -c 2 "$IOS_APP_PATH")" != "PK" ]; then
+            echo "다운로드 파일이 ZIP 이 아니다"
+            exit 1
+          fi
+          ls -l apps/ios/
+
+      - name: "시뮬레이터 부팅 후 회귀 실행"
+        run: bash .github/scripts/run-ios-ci-tests.sh
+
+      - name: "Allure HTML 리포트 생성"
+        if: ${{ !cancelled() && hashFiles('allure-results/**') != '' }}
+        run: npx allure generate allure-results -o allure-report --clean
+
+      - name: "리포트 업로드 (성공 실패 무관)"
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: "allure-report-ios"
+          path: |
+            allure-report/
+            allure-results/
+            appium.log
+          retention-days: 30
+          if-no-files-found: warn

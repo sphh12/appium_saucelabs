@@ -1,0 +1,33 @@
+[project]
+name = "appium-mobile-test"
+version = "1.0.0"
+description = "Appium Mobile Test Automation"
+requires-python = ">=3.10"
+
+[tool.ruff]
+line-length = 100
+indent-width = 4
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # Pyflakes
+    "I",   # isort
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "E402",  # module level import not at top of file
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "lf"
+
+[tool.ruff.lint.isort]
+known-first-party = ["config", "utils", "pages", "tests"]
+
+# pytest 설정은 pytest.ini 단일 출처 (마커 5종 포함). 여기 중복 정의 금지 — pytest가 pytest.ini만 읽어 충돌·죽은 설정이 됨.

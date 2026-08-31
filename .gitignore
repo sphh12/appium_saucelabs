@@ -1,0 +1,72 @@
+# Environment variables (Public 저장소 — 실제 .env는 절대 커밋 금지, 템플릿만 추적)
+.env
+.env.*
+!.env.example
+
+# Python
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Node.js
+node_modules/
+package-lock.json
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.history/
+
+# Test results
+reports/
+allure-results/
+allure-report/
+allure-reports/
+*.html
+!templates/*.html
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# 앱 설치 파일 (Public 저장소 - SauceLabs 자산이라 미러링 제외)
+apps/
+*.apk
+*.ipa
+
+# PDF files (generated)
+*.pdf
+
+# Appium Inspector session files (contains user-specific paths)
+*.appiumsession
+
+# 디버그 산출물
+debug_output/
+
+# Appium MCP (자동 생성/머신별 절대경로 포함)
+tools/mcp/capabilities.json
+config/capabilities.json
+
+# UI 덤프 (앱 구조 정보 포함 — Public 저장소 제외, GIT_RULES 4·13장)
+ui_dumps/
+
+# MCP 세션 녹화 (스크린샷/페이지소스/활성 세션 마커는 추적 제외)
+sessions/.active_session
+sessions/*/screenshots/
+sessions/*/page_sources/
+
+# Windows PowerShell 잘못된 리다이렉션으로 생기는 빈 파일
+nul
+
+# Claude Code — Private 저장소에서 추적 허용

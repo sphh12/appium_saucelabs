@@ -1,0 +1,9 @@
+*.apk filter=lfs diff=lfs merge=lfs -text
+*.ipa filter=lfs diff=lfs merge=lfs -text
+apps/** filter=lfs diff=lfs merge=lfs -text
+
+# 줄바꿈 정규화 — CI(Linux)에서 실행되는 스크립트가 CRLF로 체크아웃되면
+# `bad interpreter: /bin/bash^M`로 죽는다. 저장소 blob·체크아웃 모두 LF로 고정한다.
+*.sh text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf

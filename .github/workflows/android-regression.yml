@@ -1,0 +1,116 @@
+# Android 회귀 CI — push / PR / 수동 실행 / 야간 스케줄로 전체 Android 테스트를 에뮬레이터에서 실행하고
+# Allure 리포트를 아티팩트로 업로드한다. iOS 는 macOS 러너·WDA 빌드가 필요해 별도 단계로 분리 예정.
+name: "[Android] Appium - My Demo App"
+# 실행 이력(런) 제목. 스케줄·수동 실행은 커밋 맥락이 없어 GitHub이 워크플로 이름으로 폴백하는데,
+# 그러면 목록에서 모든 런이 같은 제목으로 보인다. 트리거별로 제목을 지정해 구분한다.
+# push/PR 은 빈 문자열로 둬 GitHub 기본값(커밋 메시지·PR 제목)을 그대로 쓴다.
+run-name: "${{ github.event_name == 'schedule' && '[Daily] Regression Test' || github.event_name == 'workflow_dispatch' && '[Manual] Regression Test' || '' }}"
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  # Actions 탭에서 수동 실행 (기본 브랜치의 파일만 버튼이 노출됨)
+  workflow_dispatch:
+  # 야간 회귀 — 코드 변경이 없어도 매일 1회 돌려 앱 업데이트와 플레이키 테스트를 감지한다.
+  # cron 은 UTC 기준이며 기본 브랜치(main)의 파일만 동작한다.
+  #   '20 18 * * *' = UTC 18:20 = KST 03:20 (다음 날 새벽)
+  #   정시(:00)는 GitHub 부하가 몰려 밀리므로 일부러 20분으로 둔다.
+  schedule:
+    - cron: "20 18 * * *"
+
+# 에뮬레이터 런은 비싸므로 같은 브랜치의 이전 실행은 취소한다
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: true
+
+env:
+  # 대상 앱은 공개 테스트용 — apps/ 가 gitignore 라 CI 에서 릴리스에서 받는다(capabilities 검증 완료 버전 고정)
+  APK_URL: "https://github.com/saucelabs/my-demo-app-android/releases/download/2.2.0/mda-2.2.0-25.apk"
+  APK_PATH: "apps/android/mda-2.2.0-25.apk"
+  # Allure 리포트 실행자 표시명 (OS 사용자명 미기록)
+  EXECUTOR_NAME: "github-actions"
+
+jobs:
+  android:
+    name: "Android 에뮬레이터 회귀"
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: "requirements.txt"
+
+      - name: "Python 의존성 설치"
+        run: pip install -r requirements.txt
+
+      # package-lock.json 은 이 저장소의 .gitignore 대상이라 러너에 없다.
+      # 따라서 npm 캐시(cache: npm)와 `npm ci` 는 쓸 수 없다 — lock 파일을 요구하기 때문.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: "Appium 및 UiAutomator2 드라이버 확인"
+        run: |
+          npm install --no-audit --no-fund
+          # 드라이버는 package.json 의 npm 의존성으로 함께 설치된다([installed (npm)] 로 표시).
+          # 목록은 stdout 이 아니라 stderr 로 나오므로 2>&1 로 합쳐서 확인해야 한다.
+          # 이걸 놓치면 이미 설치된 드라이버를 또 설치하려다 "already installed" 로 죽는다.
+          DRIVERS="$(npx appium driver list --installed 2>&1)"
+          echo "$DRIVERS"
+          echo "$DRIVERS" | grep -qi uiautomator2 || npx appium driver install uiautomator2
+          npx appium --version
+
+      - name: "대상 앱 APK 다운로드"
+        run: |
+          mkdir -p apps/android
+          curl -fsSL -o "$APK_PATH" "$APK_URL"
+          # ZIP 매직(PK) 검증 — 차단 페이지 등이 APK 로 저장되는 것을 막는다
+          if [ "$(head -c 2 "$APK_PATH")" != "PK" ]; then
+            echo "다운로드 파일이 APK(ZIP)가 아니다"
+            exit 1
+          fi
+          ls -l apps/android/
+
+      - name: "KVM 활성화 (에뮬레이터 하드웨어 가속)"
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: "에뮬레이터 부팅 후 회귀 실행"
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          # profile 을 생략하면 기본 디바이스가 320x640 으로 생성된다.
+          # 그 화면에서는 카탈로그에 상품이 1개만 렌더링되고 상품 이미지 탭이 상세로 진입하지 못해
+          # 상세를 거치는 테스트 12건이 전부 실패한다(실측). 로컬 검증 환경과 동일한 프로필로 맞춘다.
+          profile: pixel_6
+          ram-size: "4096M"
+          disable-animations: true
+          emulator-options: "-no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none"
+          script: bash .github/scripts/run-ci-tests.sh
+
+      - name: "Allure HTML 리포트 생성"
+        if: ${{ !cancelled() && hashFiles('allure-results/**') != '' }}
+        run: npx allure generate allure-results -o allure-report --clean
+
+      - name: "리포트 업로드 (성공 실패 무관)"
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: "allure-report"
+          path: |
+            allure-report/
+            allure-results/
+            appium.log
+          retention-days: 30
+          if-no-files-found: warn

@@ -1,0 +1,35 @@
+{
+  "_comment": "Cowork / Claude Desktop / Cursor 에 등록하는 MCP 설정 샘플. 이 파일 자체를 복사하지 말고, mcpServers 안의 'appium-mcp' 블록만 본인의 설정 파일에 병합하세요.",
+  "_locations": {
+    "windows_claude_desktop": "%APPDATA%\\Claude\\claude_desktop_config.json",
+    "macos_claude_desktop": "~/Library/Application Support/Claude/claude_desktop_config.json",
+    "cowork": "Cowork 설정 → Connectors / MCP 항목에서 동일 JSON 형식으로 추가",
+    "cursor": "Cursor Settings → MCP → Add new MCP Server"
+  },
+  "mcpServers": {
+    "appium-mcp": {
+      "command": "appium-mcp",
+      "_command_alt": "npm install -g appium-mcp 으로 설치 후 직접 실행. npx -y 방식은 첫 실행 시 timeout 발생 가능.",
+      "env": {
+        "NO_UI": "true",
+        "_NO_UI_note": "스크린샷/page_source를 base64로 인라인 반환하지 않음. 토큰 60-90% 절감, MCP 응답 안정화.",
+        "ANDROID_HOME": "${ANDROID_HOME}",
+        "CAPABILITIES_CONFIG": "${PROJECT_ROOT}/tools/mcp/capabilities.json",
+        "SCREENSHOTS_DIR": "${PROJECT_ROOT}/ui_dumps/mcp"
+      }
+    }
+  },
+  "_examples_by_os": {
+    "windows": {
+      "ANDROID_HOME": "C:/Users/<your-username>/AppData/Local/Android/Sdk",
+      "CAPABILITIES_CONFIG": "C:/Users/<your-username>/appium-mobile-test/tools/mcp/capabilities.json",
+      "SCREENSHOTS_DIR": "C:/Users/<your-username>/appium-mobile-test/ui_dumps/mcp",
+      "_path_note": "Windows 경로는 백슬래시 대신 슬래시(/) 또는 이스케이프된 백슬래시(\\\\)를 사용하세요."
+    },
+    "macos": {
+      "ANDROID_HOME": "/Users/<your-username>/Library/Android/sdk",
+      "CAPABILITIES_CONFIG": "/Users/<your-username>/appium-mobile-test/tools/mcp/capabilities.json",
+      "SCREENSHOTS_DIR": "/Users/<your-username>/appium-mobile-test/ui_dumps/mcp"
+    }
+  }
+}

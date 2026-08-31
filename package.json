@@ -1,0 +1,28 @@
+{
+  "name": "appium",
+  "version": "1.0.0",
+  "description": "Appium 모바일 자동화 테스트 프로젝트",
+  "scripts": {
+    "appium": "appium",
+    "appium:start": "appium --address 127.0.0.1 --port 4723",
+    "appium:drivers": "appium driver list --installed",
+    "test:android": "pytest tests/android -v --platform=android",
+    "test:ios": "pytest tests/ios -v --platform=ios",
+    "test:all": "pytest tests -v",
+    "allure:run": "python tools/run_allure.py -- tests/android -v --platform=android --record-video --clean-alluredir",
+    "allure:run:no-video": "python tools/run_allure.py -- tests/android -v --platform=android --clean-alluredir"
+  },
+  "keywords": [
+    "appium",
+    "mobile",
+    "testing",
+    "automation"
+  ],
+  "license": "ISC",
+  "devDependencies": {
+    "allure-commandline": "^2.36.0",
+    "appium": "^3.1.2",
+    "appium-uiautomator2-driver": "^6.9.3",
+    "appium-xcuitest-driver": "^10.28.1"
+  }
+}
