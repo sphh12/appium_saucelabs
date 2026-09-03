@@ -2,7 +2,7 @@
 
 > SauceLabs My Demo App Appium 자동화 프로젝트 전체 코드 리뷰 보고서
 > 이 문서는 **개선 작업 추적용 기준 문서**입니다. 항목 처리 시 체크박스를 갱신하세요.
-> 진행 관리: `CHANGELOG.md` `[Unreleased]` 섹션 참고.
+> 진행 관리: `CHANGELOG.md` `Todo` 섹션 참고.
 
 ---
 

@@ -152,9 +152,9 @@ appium-SMDA/
 
 | 구분 | 키워드 | 동작 |
 |------|--------|------|
-| Session Start | "하이" / "안녕" / "컴백" / "high" | `CHANGELOG.md`(최근 이력 + `[Unreleased]`) 참고하여 진행상황 브리핑 + 원격/로컬 코드 비교하여 최신 여부 알림 |
-| Session End | "바이" / "갈게" / "퇴근" | `CHANGELOG.md` 업데이트(날짜 섹션 + `[Unreleased]` 정리) → **Git Push 규칙** 따라 커밋/푸시 |
-| Git Push | "푸시" / "깃 푸시" / "깃에 올려줘" | `GIT_RULES.md` 참고 → 민감정보 스캔 → `CHANGELOG.md` 업데이트(미기록 변경 + `[Unreleased]` 정리) → 커밋/푸시 |
+| Session Start | "하이" / "안녕" / "컴백" / "high" | `CHANGELOG.md`(최근 이력 + `Todo`) 참고하여 진행상황 브리핑 + 원격/로컬 코드 비교하여 최신 여부 알림 |
+| Session End | "바이" / "갈게" / "퇴근" | `CHANGELOG.md` 업데이트(날짜 섹션 + `Todo` 정리) → **Git Push 규칙** 따라 커밋/푸시 |
+| Git Push | "푸시" / "깃 푸시" / "깃에 올려줘" | `GIT_RULES.md` 참고 → 민감정보 스캔 → `CHANGELOG.md` 업데이트(미기록 변경 + `Todo` 정리) → 커밋/푸시 |
 | Briefing | "브리핑" / "다음 할일" / "현재 상황" / "뭐하고 있었지" | 현재 프로젝트 상황 브리핑 |
 | Git Status | "git 확인" / "상태 확인" / "깃 확인해줘" | `git fetch --all` → 로컬 vs 원격 비교표 출력 |
 | 자동화 코드 | "자동화 코드를 만들어줘" | UI Dump 분석 → 테스트 코드 구현 → 실행/디버깅 → 리포트 |
@@ -181,8 +181,8 @@ appium-SMDA/
 
 | 조건 | 동작 |
 |------|------|
-| 큰 단위 작업 완료 | `CHANGELOG.md` 자동 업데이트 (날짜 섹션 + `[Unreleased]`) |
-| 중간 진행 상태 | `CHANGELOG.md` `[Unreleased]`에 진행 중 표기 + 날짜 섹션에 단계 기록 |
+| 큰 단위 작업 완료 | `CHANGELOG.md` 자동 업데이트 (날짜 섹션 + `Todo`) |
+| 중간 진행 상태 | `CHANGELOG.md` `Todo`에 진행 중 표기 + 날짜 섹션에 단계 기록 |
 | **MCP 시나리오 활성 상태** | 모든 MCP 액션을 `session_recorder.py log`로 자동 기록 (스크린샷, 셀렉터, 카테고리 포함) |
 
 > **큰 단위 작업**: 새로운 기능 구현, 프로젝트 생성/배포, 시스템 구조 변경, 도구 추가 등 여러 파일에 걸친 의미 있는 작업 단위
@@ -270,7 +270,7 @@ appium-SMDA/
    - 최신이면: "로컬 코드 최신 상태입니다" 한 줄 표시
    - 최신 아니면: 자동 pull + 변경 내용 요약
 2. `CHANGELOG.md` 최근 날짜 섹션 확인 → 최근 완료 작업 요약 (1~3줄)
-3. `CHANGELOG.md` `[Unreleased]` 확인 → 진행 중/남은 할일 목록 + 다음 추천 작업 제안
+3. `CHANGELOG.md` `Todo` 확인 → 진행 중/남은 할일 목록 + 다음 추천 작업 제안
 
 ### Session End (세션 종료)
 
@@ -279,7 +279,7 @@ appium-SMDA/
 **질문 없이 중단 없이** 아래를 모두 실행하고 결과만 보고:
 
 1. 당일 작업 내용을 `CHANGELOG.md` 날짜 섹션에 정리 (날짜별, 최신이 위, `### Added/Changed/Fixed` 분류)
-2. 미완료/다음 작업을 `CHANGELOG.md` `[Unreleased]`에 정리 (완료 항목은 날짜 섹션으로 이동)
+2. 미완료/다음 작업을 `CHANGELOG.md` `Todo`에 정리 (완료 항목은 날짜 섹션으로 이동)
 3. 변경사항이 있으면 → **Git Push 규칙** 따라 커밋/푸시
 
 ### Git Push
@@ -290,7 +290,7 @@ appium-SMDA/
 
 **동작:**
 1. **`GIT_RULES.md` 읽기**: 매 세션 첫 push 시 반드시 파일을 읽어 최신 규칙 확인
-2. **md 파일 업데이트**: `CHANGELOG.md` (날짜 섹션에 미기록 변경사항 + `[Unreleased]` 완료 이동·할일 추가) + 기타 관련 md
+2. **md 파일 업데이트**: `CHANGELOG.md` (날짜 섹션에 미기록 변경사항 + `Todo` 완료 이동·할일 추가) + 기타 관련 md
 3. **민감정보 스캔** (`GIT_RULES.md` 섹션 2~6): `git diff`에서 API 키/토큰/비밀번호/이메일/전화번호 노출 확인 → 발견 시 커밋 중단
 4. **커밋 메시지** (`GIT_RULES.md` 섹션 8): `<type>: <파일/기능> - <변경내용>` + 본문 한글 설명
 5. **push 대상** (`GIT_RULES.md` 섹션 1): GitHub origin 단일 푸시
@@ -305,7 +305,7 @@ appium-SMDA/
 
 **동작:**
 1. `CHANGELOG.md` 최근 날짜 섹션 → 최근 완료 작업 확인
-2. `CHANGELOG.md` `[Unreleased]` → 진행 중/다음 단계 확인
+2. `CHANGELOG.md` `Todo` → 진행 중/다음 단계 확인
 3. 간결 요약: 최근 완료 (1~3줄) + 남은 할일 (우선순위순) + 다음 추천 작업
 
 ### Git Status (상태 확인)
