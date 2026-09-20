@@ -16,12 +16,9 @@
 
 ### 다음 작업 (우선순위순)
 
-- [ ] **Allure 트렌드 이어붙임 복구 (4개 프로젝트 공통)** — `tools/run_allure.py` 가 이전 리포트의 `history/` 를
-  새 results 로 복사한 **뒤에** `pytest --clean-alluredir` 을 돌려 방금 복사한 history 를 지운다. 그래서 리포트를
-  아무리 쌓아도 트렌드 그래프가 항상 1건이다. 실측(2026-09-21): `appium` 리포트 9개·트렌드 1,
-  `appium_saucelabs_old` 5개·트렌드 1, `appium_template` 2개·트렌드 1.
-  고치려면 `_copy_history()` 호출을 pytest **뒤, `allure generate` 앞**으로 옮긴다.
-  `appium`·`appium_saucelabs`·`appium_saucelabs_old`·`appium_template` 전부 동일 결함이라 함께 고쳐야 한다
+- [ ] (개선) 직전 리포트에 `history/` 가 없으면 더 과거 리포트로 폴백 — 지금은 `_find_latest_timestamp_dir` 이
+  최신 하나만 보므로, 그 한 번의 `allure generate` 가 깨지면 이후 트렌드가 영구히 1건으로 리셋된다.
+  역순으로 훑어 `history/` 가 있는 첫 리포트를 고르면 된다 (현재는 "다시 시작한다" 경고로 최소 감지는 됨)
 - [ ] **R-11 (iOS 카트 수량 테스트) 보류 해제** — 시뮬 부팅 후 `python tools/ui_dump_ios.py -w`로 수량/합계 accessibility id 확보 → iOS `CartPage` getter 보강 → `test_change_quantity` 추가
 - [ ] 코드 리뷰 잔여 — 🟡 개선(Low) 41건(`docs/CODE_REVIEW_2026-06-29.md` §5) + ℹ️ 정보성(Info) 10건(§6)
 
@@ -45,6 +42,25 @@
 
 - README 영문판 작성 (한국어판 완료)
 - 서브 프로젝트: WebdriverIO Native Demo App (메인 완료 후)
+
+---
+
+## 2026-09-21
+
+### Fixed
+
+- **Allure 트렌드 이어붙임 복구 (4개 프로젝트 공통)** — 리포트를 아무리 쌓아도 트렌드 그래프가 1건이던 문제.
+  `_copy_history()` 가 이전 리포트의 `history/` 를 results 로 복사한 **직후** `pytest --clean-alluredir` 이
+  그 폴더를 통째로 `rmtree` 해 버렸다 (`allure_commons/logger.py` 의 `AllureFileLogger.__init__`).
+  복사를 pytest **뒤, `allure generate` 앞**으로 옮겼다. conftest 의 `pytest_sessionstart` 가
+  `environment.properties` 를 clean 뒤로 미룬 것과 같은 이유다.
+  - 이어붙일 직전 리포트는 pytest **전**에 확정한다 — 실행 중에 끝난 다른 런에 이어붙는 역전 방지
+  - 복사 실패가 완료된 테스트 결과를 날리지 않도록 `try/except` 로 감쌌다 (트렌드는 포기해도 리포트는 만든다)
+  - `_copy_history()` 가 복사 여부를 bool 로 반환 — 이전 리포트에 `history/` 가 없으면 "다시 시작한다" 로
+    정확히 보고한다. 예전엔 조용히 아무것도 안 해서 실패를 알 수 없었다
+  - `shutil.copytree(dirs_exist_ok=True)` 로 교체 — `rmtree(ignore_errors=True)` 가 실패했을 때
+    엉뚱한 `FileExistsError` 로 튀던 함정 제거
+  - 검증: `appium_template` 연속 실행 트렌드 1→2→3, 리뷰 반영 후 3→4→5 / `appium` 1→2→3
 
 ---
 

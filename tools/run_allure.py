@@ -81,14 +81,21 @@ def _find_latest_timestamp_dir(root: Path) -> Path | None:
     return sorted(dirs, key=lambda p: p.name)[-1]
 
 
-def _copy_history(previous_report_dir: Path, results_dir: Path) -> None:
+def _copy_history(previous_report_dir: Path, results_dir: Path) -> bool:
+    """이전 리포트의 history/ 를 새 results 로 복사. 실제로 복사했으면 True.
+
+    복사 여부를 돌려주는 이유: 이전 리포트에 history/ 가 없으면(첫 실행, 직전
+    generate 실패, --no-history 로 돌린 경우) 조용히 아무것도 안 하는데,
+    호출부가 그걸 모르면 "이어붙였다" 고 잘못 보고하게 된다.
+    """
     src = previous_report_dir / "history"
     dst = results_dir / "history"
     if not src.exists() or not src.is_dir():
-        return
-    if dst.exists():
-        shutil.rmtree(dst, ignore_errors=True)
-    shutil.copytree(src, dst)
+        return False
+    # rmtree(ignore_errors=True) 뒤 copytree 는 삭제가 실패했을 때(파일 잠금 등)
+    # 엉뚱한 FileExistsError 로 튄다. dirs_exist_ok 로 덮어써서 그 함정을 피한다.
+    shutil.copytree(src, dst, dirs_exist_ok=True)
+    return True
 
 
 def _write_latest_entry(reports_root: Path, timestamp: str) -> None:
@@ -248,16 +255,37 @@ def main() -> int:
     results_dir.mkdir(parents=True, exist_ok=False)
     report_dir.parent.mkdir(parents=True, exist_ok=True)
 
+    # 이어붙일 '직전 리포트' 는 pytest 실행 **전** 에 확정한다.
+    # 실행 중에 다른 런이 끝나면 더 큰 타임스탬프가 생겨, 나중에 조회할 경우
+    # 자기보다 늦게 시작한 런에 이어붙는 역전이 생긴다.
+    previous_report_dir = None
     if args.keep_history:
-        previous_report_dir = _find_latest_timestamp_dir(Path(args.reports_root))
-        if previous_report_dir is not None and previous_report_dir.name != timestamp:
-            _copy_history(previous_report_dir, results_dir)
+        candidate = _find_latest_timestamp_dir(Path(args.reports_root))
+        if candidate is not None and candidate.name != timestamp:
+            previous_report_dir = candidate
 
     env = os.environ.copy()
 
     pytest_cmd = [sys.executable, "-m", "pytest", *pytest_args, "--alluredir", str(results_dir)]
     print("[run_allure] pytest:", " ".join(pytest_cmd))
     pytest_proc = subprocess.run(pytest_cmd, env=env)
+
+    # 복사 자체는 pytest **뒤** 에 해야 한다.
+    # --clean-alluredir 은 results 폴더를 통째로 rmtree 한다(allure_commons/logger.py 의
+    # AllureFileLogger.__init__). pytest 앞에서 복사하면 방금 넣은 history/ 가 그대로 지워져
+    # 리포트를 아무리 쌓아도 트렌드가 항상 1건이 된다.
+    # conftest 의 pytest_sessionstart 가 environment.properties 를 clean 뒤로 미룬 것과 같은 이유다.
+    #
+    # try 로 감싸는 이유: 이 시점엔 테스트가 이미 다 끝났다. 트렌드 하나 때문에
+    # 여기서 죽으면 리포트·업로드까지 통째로 날아간다. 트렌드는 포기해도 리포트는 만든다.
+    if previous_report_dir is not None:
+        try:
+            if _copy_history(previous_report_dir, results_dir):
+                print(f"[run_allure] 트렌드 이어붙임: {previous_report_dir}/history -> {results_dir}/history")
+            else:
+                print(f"[run_allure] 직전 리포트에 history 가 없어 트렌드를 이번 실행부터 다시 시작한다: {previous_report_dir}")
+        except OSError as exc:
+            print(f"[run_allure] 트렌드 이어붙임 실패 — 무시하고 리포트 생성을 계속한다: {exc}")
 
     allure_cmd = _resolve_allure_cmd()
     if allure_cmd is None:
