@@ -16,6 +16,12 @@
 
 ### 다음 작업 (우선순위순)
 
+- [ ] **Allure 트렌드 이어붙임 복구 (4개 프로젝트 공통)** — `tools/run_allure.py` 가 이전 리포트의 `history/` 를
+  새 results 로 복사한 **뒤에** `pytest --clean-alluredir` 을 돌려 방금 복사한 history 를 지운다. 그래서 리포트를
+  아무리 쌓아도 트렌드 그래프가 항상 1건이다. 실측(2026-09-21): `appium` 리포트 9개·트렌드 1,
+  `appium_saucelabs_old` 5개·트렌드 1, `appium_template` 2개·트렌드 1.
+  고치려면 `_copy_history()` 호출을 pytest **뒤, `allure generate` 앞**으로 옮긴다.
+  `appium`·`appium_saucelabs`·`appium_saucelabs_old`·`appium_template` 전부 동일 결함이라 함께 고쳐야 한다
 - [ ] **R-11 (iOS 카트 수량 테스트) 보류 해제** — 시뮬 부팅 후 `python tools/ui_dump_ios.py -w`로 수량/합계 accessibility id 확보 → iOS `CartPage` getter 보강 → `test_change_quantity` 추가
 - [ ] 코드 리뷰 잔여 — 🟡 개선(Low) 41건(`docs/CODE_REVIEW_2026-06-29.md` §5) + ℹ️ 정보성(Info) 10건(§6)
 
