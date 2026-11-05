@@ -1,5 +1,14 @@
 # Appium Mobile Test — SauceLabs My Demo App
 
+[![Android](https://github.com/sphh12/appium_saucelabs/actions/workflows/android-regression.yml/badge.svg)](https://github.com/sphh12/appium_saucelabs/actions/workflows/android-regression.yml)
+[![iOS](https://github.com/sphh12/appium_saucelabs/actions/workflows/ios-regression.yml/badge.svg)](https://github.com/sphh12/appium_saucelabs/actions/workflows/ios-regression.yml)
+
+> 배지는 기본 브랜치의 최신 CI 실행 상태다.
+>
+> 매일 Android KST 03:20 · iOS KST 03:50 데일리 회귀가 돌기 때문에 대개 그 결과를 가리킨다.
+>
+> 스케줄 실행만 따로 보려면 [Android — event:schedule](https://github.com/sphh12/appium_saucelabs/actions/workflows/android-regression.yml?query=event%3Aschedule) · [iOS — event:schedule](https://github.com/sphh12/appium_saucelabs/actions/workflows/ios-regression.yml?query=event%3Aschedule) 참고.
+
 ## Overview
 
 [SauceLabs My Demo App (네이티브 Android)](https://github.com/saucelabs/my-demo-app-android) E2E

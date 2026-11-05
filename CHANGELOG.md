@@ -45,6 +45,12 @@
 
 ---
 
+## 2026-11-05
+
+### Added
+- **README 에 GitHub Actions 상태 배지 추가** — 제목 바로 아래에 Android·iOS 배지(기본 브랜치 최신 실행 상태)와
+  실행 이력 링크를 넣었다. 형식은 `playwright-saucedemo` README 와 같다.
+
 ## 2026-09-21
 
 ### Fixed
